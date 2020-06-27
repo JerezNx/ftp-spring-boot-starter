@@ -27,6 +27,7 @@ public class FtpAutoConfiguration {
 
     /**
      * ftp配置
+     *
      * @return ftp配置
      */
     @ConfigurationProperties(prefix = FtpProperties.PREFIX)
@@ -43,9 +44,9 @@ public class FtpAutoConfiguration {
     @ConfigurationProperties(prefix = "ftp.pool")
     @Bean
     public GenericObjectPoolConfig<FTPClient> poolConfig() {
-        GenericObjectPoolConfig<FTPClient> poolConfig = new GenericObjectPoolConfig<>();
-        poolConfig.setJmxNamePrefix("ftpClientPool");
-        return poolConfig;
+        final GenericObjectPoolConfig<FTPClient> ftpClientPoolConfig = new GenericObjectPoolConfig<>();
+        ftpClientPoolConfig.setJmxEnabled(false);
+        return ftpClientPoolConfig;
     }
 
     @Bean
