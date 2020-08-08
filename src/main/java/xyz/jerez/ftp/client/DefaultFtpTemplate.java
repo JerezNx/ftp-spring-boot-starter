@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,6 +28,7 @@ public class DefaultFtpTemplate implements FtpTemplate {
 
     /**
      * 当前线程所使用的ftpClient
+     *
      * @see ProxyFtpTemplate.FtpClientInterceptor 动态代理设置，移除
      */
     static ThreadLocal<FTPClient> client = new ThreadLocal<>();
@@ -86,6 +89,25 @@ public class DefaultFtpTemplate implements FtpTemplate {
     }
 
     @Override
+    public List<String> listDir(String directory) {
+        FTPClient ftpClient = client.get();
+        LinkedList<String> list = new LinkedList<>();
+        try {
+            FTPFile[] files = listFtpFilesFilterLinuxDir(directory, ftpClient);
+            for (int i = 0; i < files.length; i++) {
+                String t = (directory + "/" + files[i].getName()).replaceAll("//", "/");
+                if (files[i].isDirectory()) {
+                    list.add(t);
+                    list.addAll(listDir(t + "/"));
+                }
+            }
+        } catch (IOException e) {
+            log.error("FTP查看文件夹失败，路径：{},异常：{}", directory, e.toString());
+        }
+        return list;
+    }
+
+    @Override
     public List<String> listFile(String directory) {
         return listFile(directory, true);
     }
@@ -100,7 +122,7 @@ public class DefaultFtpTemplate implements FtpTemplate {
         FTPClient ftpClient = client.get();
         List<String> list = new ArrayList<>();
         try {
-            FTPFile[] files = ftpClient.listFiles(directory);
+            FTPFile[] files = listFtpFilesFilterLinuxDir(directory, ftpClient);
             for (FTPFile file : files) {
                 String t = includeBaseDir ? (directory + "/" + file.getName()).replaceAll("//", "/") : file.getName();
                 if (file.isFile()) {
@@ -110,7 +132,6 @@ public class DefaultFtpTemplate implements FtpTemplate {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
             log.error("FTP查看文件失败，路径：{},异常：{}", directory, e.toString());
         }
         return list;
@@ -175,6 +196,58 @@ public class DefaultFtpTemplate implements FtpTemplate {
         return false;
     }
 
+    @Override
+    public boolean deleteFile(String fullFileName) {
+        FTPClient ftpClient = client.get();
+        try {
+            ftpClient.deleteFile(fullFileName);
+            return true;
+        } catch (IOException e) {
+            log.error("FTP删除文件失败，文件:{}，异常：{}", fullFileName, e.toString());
+        }
+        return false;
+    }
+
+    @Override
+    public boolean deleteDir(String directory) {
+        FTPClient ftpClient = client.get();
+        List<String> files = listFile(directory);
+        try {
+            for (String s : files) {
+                deleteFile(s);
+            }
+            List<String> dirs = listDir(directory);
+            for (int i = dirs.size() - 1; i >= 0; i--) {
+                ftpClient.removeDirectory(new String(dirs.get(i).getBytes("UTF-8"), "ISO-8859-1"));
+            }
+            ftpClient.removeDirectory(new String(directory.getBytes("UTF-8"), "ISO-8859-1"));
+            return true;
+        } catch (IOException e) {
+            log.error("FTP删除文件夹失败，文件夹:{}，异常：{}", directory, e.toString());
+        }
+        return false;
+    }
+
+    /**
+     * 获取指定目录下级文件及目录（排除掉Linux下的. ..）
+     * @param directory 指定目录
+     * @param ftpClient ftp客户端
+     * @return 文件及目录列表
+     * @throws IOException
+     */
+    private FTPFile[] listFtpFilesFilterLinuxDir(String directory, FTPClient ftpClient) throws IOException {
+        return ftpClient.listFiles(directory, (ftpFile) ->
+                //                    linux 下，会出现 . 和 .. 两个目录
+                (!".".equals(ftpFile.getName()) && !"..".equals(ftpFile.getName())) || ftpFile.isFile()
+        );
+    }
+
+    /**
+     * 获取文件父路径
+     *
+     * @param file 文件名
+     * @return 父路径
+     */
     private String getParentPath(String file) {
         if (file.contains("/")) {
             String temp;

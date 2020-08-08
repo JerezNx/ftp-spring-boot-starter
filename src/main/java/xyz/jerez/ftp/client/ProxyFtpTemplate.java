@@ -55,6 +55,11 @@ public class ProxyFtpTemplate implements FtpTemplate {
     }
 
     @Override
+    public List<String> listDir(String directory) {
+        return ftpTemplateProxy.listDir(directory);
+    }
+
+    @Override
     public List<String> listFile(String directory) {
         return ftpTemplateProxy.listFile(directory);
     }
@@ -87,6 +92,16 @@ public class ProxyFtpTemplate implements FtpTemplate {
     @Override
     public boolean changeWorkDir(String directory) {
         return ftpTemplateProxy.changeWorkDir(directory);
+    }
+
+    @Override
+    public boolean deleteFile(String fullFileName) {
+        return ftpTemplateProxy.deleteFile(fullFileName);
+    }
+
+    @Override
+    public boolean deleteDir(String directory) {
+        return ftpTemplateProxy.deleteDir(directory);
     }
 
     /**

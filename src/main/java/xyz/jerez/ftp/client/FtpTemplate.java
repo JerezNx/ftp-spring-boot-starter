@@ -42,12 +42,21 @@ public interface FtpTemplate {
     boolean uploadFile(InputStream inputStream, String remoteFullPath);
 
     /**
+     * 罗列指定目录下的目录
+     *
+     * @param directory 指定目录
+     * @return 文件目录列表（包含所在路径）
+     */
+    List<String> listDir(String directory);
+
+    /**
      * 罗列指定目录下的文件
      *
      * @param directory 指定目录
      * @return 文件名列表（包含所在路径）
      */
     List<String> listFile(String directory);
+
 
     /**
      * 罗列指定目录下的文件
@@ -99,4 +108,18 @@ public interface FtpTemplate {
      */
     boolean changeWorkDir(String directory);
 
+
+    /**
+     * 删除文件
+     * @param fullFileName 完整文件名
+     * @return 是否成功
+     */
+    boolean deleteFile(String fullFileName);
+
+    /**
+     * 删除指定目录
+     * @param directory 目录
+     * @return 是否成功
+     */
+    boolean deleteDir(String directory);
 }
